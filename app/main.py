@@ -3,8 +3,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers import projects, tasks, users
 
 app = FastAPI(title="TaskHub API")
+
+app.include_router(users.router)
+app.include_router(projects.router)
+app.include_router(tasks.router)
 
 
 @app.get("/health")
