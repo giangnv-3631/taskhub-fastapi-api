@@ -1,8 +1,8 @@
 """create initial tables
 
-Revision ID: b2d87d7b92d7
+Revision ID: 585c83b1f858
 Revises: 
-Create Date: 2026-10-22 20:18:12.576426
+Create Date: 2026-10-26 16:44:19.278526
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b2d87d7b92d7'
+revision: str = '585c83b1f858'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,58 +27,59 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
-    op.create_index(op.f('ix_tags_id'), 'tags', ['id'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('full_name', sa.String(length=100), nullable=False),
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
-    sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
-    op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     op.create_table('projects',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=200), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('owner_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.ForeignKeyConstraint(['owner_id'], ['users.id'], ),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['owner_id'], ['users.id'], ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_projects_id'), 'projects', ['id'], unique=False)
+    op.create_index(op.f('ix_projects_owner_id'), 'projects', ['owner_id'], unique=False)
     op.create_table('tasks',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=200), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('status', sa.String(length=20), nullable=False),
-    sa.Column('priority', sa.String(length=20), nullable=False),
+    sa.Column('status', sa.Enum('todo', 'in_progress', 'done', name='taskstatus', native_enum=False, length=20), nullable=False),
+    sa.Column('priority', sa.Enum('low', 'medium', 'high', name='taskpriority', native_enum=False, length=20), nullable=False),
     sa.Column('due_date', sa.Date(), nullable=True),
     sa.Column('project_id', sa.Integer(), nullable=False),
     sa.Column('creator_id', sa.Integer(), nullable=False),
     sa.Column('assignee_id', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['assignee_id'], ['users.id'], ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['creator_id'], ['users.id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['project_id'], ['projects.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_tasks_id'), 'tasks', ['id'], unique=False)
+    op.create_index(op.f('ix_tasks_assignee_id'), 'tasks', ['assignee_id'], unique=False)
+    op.create_index(op.f('ix_tasks_creator_id'), 'tasks', ['creator_id'], unique=False)
+    op.create_index(op.f('ix_tasks_project_id'), 'tasks', ['project_id'], unique=False)
     op.create_table('comments',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('task_id', sa.Integer(), nullable=False),
     sa.Column('author_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.ForeignKeyConstraint(['author_id'], ['users.id'], ),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['author_id'], ['users.id'], ondelete='RESTRICT'),
     sa.ForeignKeyConstraint(['task_id'], ['tasks.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_comments_id'), 'comments', ['id'], unique=False)
+    op.create_index(op.f('ix_comments_author_id'), 'comments', ['author_id'], unique=False)
+    op.create_index(op.f('ix_comments_task_id'), 'comments', ['task_id'], unique=False)
     op.create_table('task_tags',
     sa.Column('task_id', sa.Integer(), nullable=False),
     sa.Column('tag_id', sa.Integer(), nullable=False),
@@ -93,15 +94,16 @@ def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('task_tags')
-    op.drop_index(op.f('ix_comments_id'), table_name='comments')
+    op.drop_index(op.f('ix_comments_task_id'), table_name='comments')
+    op.drop_index(op.f('ix_comments_author_id'), table_name='comments')
     op.drop_table('comments')
-    op.drop_index(op.f('ix_tasks_id'), table_name='tasks')
+    op.drop_index(op.f('ix_tasks_project_id'), table_name='tasks')
+    op.drop_index(op.f('ix_tasks_creator_id'), table_name='tasks')
+    op.drop_index(op.f('ix_tasks_assignee_id'), table_name='tasks')
     op.drop_table('tasks')
-    op.drop_index(op.f('ix_projects_id'), table_name='projects')
+    op.drop_index(op.f('ix_projects_owner_id'), table_name='projects')
     op.drop_table('projects')
-    op.drop_index(op.f('ix_users_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
-    op.drop_index(op.f('ix_tags_id'), table_name='tags')
     op.drop_table('tags')
     # ### end Alembic commands ###

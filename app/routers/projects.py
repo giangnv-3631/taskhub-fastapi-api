@@ -9,4 +9,4 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 @router.get("", response_model=list[ProjectRead], summary="List projects")
 def list_projects(db: DbSession) -> list[ProjectRead]:
-    return project_crud.get_projects(db)
+    return [ProjectRead.model_validate(project) for project in project_crud.get_projects(db)]

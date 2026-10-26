@@ -9,4 +9,4 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 @router.get("", response_model=list[TaskRead], summary="List tasks")
 def list_tasks(db: DbSession) -> list[TaskRead]:
-    return task_crud.get_tasks(db)
+    return [TaskRead.model_validate(task) for task in task_crud.get_tasks(db)]

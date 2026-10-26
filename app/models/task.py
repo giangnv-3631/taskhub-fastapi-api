@@ -5,7 +5,7 @@ from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.enums import TaskPriority, TaskStatus
+from app.enums import TaskPriority, TaskStatus, enum_values
 from app.models.tag import task_tags
 
 if TYPE_CHECKING:
@@ -22,11 +22,11 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, native_enum=False, length=20, values_callable=lambda e: [m.value for m in e]),
+        Enum(TaskStatus, native_enum=False, length=20, values_callable=enum_values),
         default=TaskStatus.TODO,
     )
     priority: Mapped[TaskPriority] = mapped_column(
-        Enum(TaskPriority, native_enum=False, length=20, values_callable=lambda e: [m.value for m in e]),
+        Enum(TaskPriority, native_enum=False, length=20, values_callable=enum_values),
         default=TaskPriority.MEDIUM,
     )
     due_date: Mapped[date | None] = mapped_column(Date)
