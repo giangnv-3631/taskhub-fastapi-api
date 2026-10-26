@@ -2,6 +2,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.enums import TaskPriority, TaskStatus
+
 
 class TaskRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -9,8 +11,8 @@ class TaskRead(BaseModel):
     id: int
     title: str
     description: str | None
-    status: str
-    priority: str
+    status: TaskStatus
+    priority: TaskPriority
     due_date: date | None
     project_id: int
     creator_id: int

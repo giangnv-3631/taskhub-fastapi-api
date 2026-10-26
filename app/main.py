@@ -1,8 +1,7 @@
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.dependencies import DbSession
 from app.routers import projects, tasks, users
 
 app = FastAPI(title="TaskHub API")
@@ -13,6 +12,6 @@ app.include_router(tasks.router)
 
 
 @app.get("/health")
-def health(db: Session = Depends(get_db)):
+def health(db: DbSession):
     db.execute(text("SELECT 1"))
     return {"status": "ok"}

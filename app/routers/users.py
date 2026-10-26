@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 from app.crud import user as user_crud
-from app.database import get_db
+from app.dependencies import DbSession
 from app.schemas.user import UserRead
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
-@router.get("", response_model=list[UserRead])
-def list_users(db: Session = Depends(get_db)):
+@router.get("", response_model=list[UserRead], summary="List users")
+def list_users(db: DbSession) -> list[UserRead]:
     return user_crud.get_users(db)

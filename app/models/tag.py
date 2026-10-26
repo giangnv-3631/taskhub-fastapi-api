@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, ForeignKey, Integer, String, Table
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+if TYPE_CHECKING:
+    from app.models.task import Task
 
 task_tags = Table(
     "task_tags",
@@ -14,7 +19,7 @@ task_tags = Table(
 class Tag(Base):
     __tablename__ = "tags"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(50), unique=True)
 
-    tasks = relationship("Task", secondary=task_tags, back_populates="tags")
+    tasks: Mapped[list["Task"]] = relationship(secondary=task_tags, back_populates="tags")
