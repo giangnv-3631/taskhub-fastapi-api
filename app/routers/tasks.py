@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from app.core.exceptions import BadRequestException, NotFoundException, error_responses
 from app.crud import task as task_crud
 from app.dependencies import DbSession, TaskDetail
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.schemas.task import TaskRead, TaskUpdate
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -11,17 +11,6 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 @router.get("", response_model=list[TaskRead], summary="List tasks")
 def list_tasks(db: DbSession) -> list[TaskRead]:
     return [TaskRead.model_validate(task) for task in task_crud.get_tasks(db)]
-
-
-@router.post(
-    "",
-    response_model=TaskRead,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create task",
-    responses=error_responses(BadRequestException),
-)
-def create_task(task_in: TaskCreate, db: DbSession) -> TaskRead:
-    return TaskRead.model_validate(task_crud.create_task(db, task_in))
 
 
 @router.get(

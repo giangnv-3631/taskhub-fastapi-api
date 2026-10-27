@@ -8,9 +8,18 @@ from app.core.constants import (
     MIN_TEXT_LENGTH,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+    USERNAME_PATTERN,
 )
 from app.schemas.base import BaseSchema, UpdateSchema
+from app.schemas.project import ProjectRead
+from app.schemas.task import TaskRead
 
+Username = Annotated[
+    str,
+    Field(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN),
+]
 FullName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=FULL_NAME_MAX_LENGTH)]
 Password = Annotated[
     str,
@@ -19,6 +28,7 @@ Password = Annotated[
 
 
 class UserBase(BaseSchema):
+    username: Username
     email: EmailStr
     full_name: FullName
 
@@ -28,8 +38,9 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(UpdateSchema):
-    non_nullable_fields = ("email", "full_name", "password", "is_active")
+    non_nullable_fields = ("username", "email", "full_name", "password", "is_active")
 
+    username: Username | None = None
     email: EmailStr | None = None
     full_name: FullName | None = None
     password: Password | None = None
@@ -42,3 +53,8 @@ class UserRead(UserBase):
     id: int
     is_active: bool
     created_at: datetime
+
+
+class UserProfile(UserRead):
+    projects: list[ProjectRead]
+    assigned_tasks: list[TaskRead]
