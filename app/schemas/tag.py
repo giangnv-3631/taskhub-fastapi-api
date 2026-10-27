@@ -1,16 +1,25 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
+
+from pydantic import ConfigDict, Field
+
+from app.core.constants import MIN_TEXT_LENGTH, TAG_NAME_MAX_LENGTH
+from app.schemas.base import BaseSchema, UpdateSchema
+
+TagName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=TAG_NAME_MAX_LENGTH)]
 
 
-class TagBase(BaseModel):
-    name: str = Field(min_length=1, max_length=50)
+class TagBase(BaseSchema):
+    name: TagName
 
 
 class TagCreate(TagBase):
     pass
 
 
-class TagUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=50)
+class TagUpdate(UpdateSchema):
+    non_nullable_fields = ("name",)
+
+    name: TagName | None = None
 
 
 class TagRead(TagBase):

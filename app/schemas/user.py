@@ -1,29 +1,39 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import ConfigDict, EmailStr, Field, StringConstraints
+
+from app.core.constants import (
+    FULL_NAME_MAX_LENGTH,
+    MIN_TEXT_LENGTH,
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+)
+from app.schemas.base import BaseSchema, UpdateSchema
+
+FullName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=FULL_NAME_MAX_LENGTH)]
+Password = Annotated[
+    str,
+    StringConstraints(strip_whitespace=False, min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH),
+]
 
 
-class UserBase(BaseModel):
+class UserBase(BaseSchema):
     email: EmailStr
-    full_name: str = Field(min_length=1, max_length=100)
+    full_name: FullName
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=8, max_length=128)
+    password: Password
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(UpdateSchema):
+    non_nullable_fields = ("email", "full_name", "password", "is_active")
+
     email: EmailStr | None = None
-    full_name: str | None = Field(default=None, min_length=1, max_length=100)
-    password: str | None = Field(default=None, min_length=8, max_length=128)
+    full_name: FullName | None = None
+    password: Password | None = None
     is_active: bool | None = None
-
-    @model_validator(mode="after")
-    def reject_null_for_required_fields(self) -> "UserUpdate":
-        for field in ("email", "full_name", "password", "is_active"):
-            if field in self.model_fields_set and getattr(self, field) is None:
-                raise ValueError(f"{field} cannot be null")
-        return self
 
 
 class UserRead(UserBase):

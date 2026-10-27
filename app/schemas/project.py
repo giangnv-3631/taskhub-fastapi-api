@@ -1,26 +1,28 @@
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, PositiveInt
+
+from app.core.constants import MIN_TEXT_LENGTH, PROJECT_NAME_MAX_LENGTH
+from app.schemas.base import BaseSchema, UpdateSchema
+
+ProjectName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=PROJECT_NAME_MAX_LENGTH)]
 
 
-class ProjectBase(BaseModel):
-    name: str = Field(min_length=1, max_length=200)
+class ProjectBase(BaseSchema):
+    name: ProjectName
     description: str | None = None
 
 
 class ProjectCreate(ProjectBase):
-    owner_id: int
+    owner_id: PositiveInt
 
 
-class ProjectUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=200)
+class ProjectUpdate(UpdateSchema):
+    non_nullable_fields = ("name",)
+
+    name: ProjectName | None = None
     description: str | None = None
-
-    @model_validator(mode="after")
-    def reject_null_for_required_fields(self) -> "ProjectUpdate":
-        if "name" in self.model_fields_set and self.name is None:
-            raise ValueError("name cannot be null")
-        return self
 
 
 class ProjectRead(ProjectBase):

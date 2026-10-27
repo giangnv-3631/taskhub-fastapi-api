@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.constants import ENUM_MAX_LENGTH, TASK_TITLE_MAX_LENGTH
 from app.database import Base
 from app.enums import TaskPriority, TaskStatus, enum_values
 from app.models.tag import task_tags
@@ -19,14 +20,14 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(String(TASK_TITLE_MAX_LENGTH))
     description: Mapped[str | None] = mapped_column(Text)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, native_enum=False, length=20, values_callable=enum_values),
+        Enum(TaskStatus, native_enum=False, length=ENUM_MAX_LENGTH, values_callable=enum_values),
         default=TaskStatus.TODO,
     )
     priority: Mapped[TaskPriority] = mapped_column(
-        Enum(TaskPriority, native_enum=False, length=20, values_callable=enum_values),
+        Enum(TaskPriority, native_enum=False, length=ENUM_MAX_LENGTH, values_callable=enum_values),
         default=TaskPriority.MEDIUM,
     )
     due_date: Mapped[date | None] = mapped_column(Date)

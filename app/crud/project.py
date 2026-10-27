@@ -1,12 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Project
+from app.core import messages
+from app.core.exceptions import BadRequestException
+from app.crud.common import get_or_raise
+from app.models import Project, User
 from app.schemas.project import ProjectCreate, ProjectUpdate
-
-
-def get_project(db: Session, project_id: int) -> Project | None:
-    return db.get(Project, project_id)
 
 
 def get_projects(db: Session):
@@ -14,6 +13,7 @@ def get_projects(db: Session):
 
 
 def create_project(db: Session, project_in: ProjectCreate) -> Project:
+    get_or_raise(db, User, project_in.owner_id, BadRequestException(messages.OWNER_NOT_FOUND))
     project = Project(**project_in.model_dump())
     db.add(project)
     db.commit()
