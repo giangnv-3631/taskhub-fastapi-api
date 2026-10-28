@@ -21,7 +21,6 @@ class TaskBase(BaseSchema):
 
 
 class TaskCreate(TaskBase):
-    creator_id: PositiveInt
     tag_ids: list[PositiveInt] = Field(default_factory=list)
 
     @field_validator("due_date")

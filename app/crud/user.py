@@ -2,11 +2,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import messages
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import ForbiddenException, NotFoundException, UnauthorizedException
 from app.crud.common import commit_or_raise_conflict
 from app.models import User
-from app.schemas.user import UserCreate, UserUpdate
-from app.security import hash_password
+from app.schemas.user import UserCreate, UserMeUpdate, normalize_username
+from app.security import DUMMY_PASSWORD_HASH, hash_password, verify_password
 
 
 def get_users(db: Session):
@@ -25,6 +25,18 @@ def get_user_profile(db: Session, username: str) -> User:
     return user
 
 
+def authenticate_user(db: Session, username: str, password: str) -> User:
+    user = db.scalar(select(User).where(User.username == normalize_username(username)))
+    if user is None:
+        verify_password(password, DUMMY_PASSWORD_HASH)
+        raise UnauthorizedException(messages.INVALID_CREDENTIALS)
+    if not verify_password(password, user.hashed_password):
+        raise UnauthorizedException(messages.INVALID_CREDENTIALS)
+    if not user.is_active:
+        raise ForbiddenException(messages.INACTIVE_USER)
+    return user
+
+
 def create_user(db: Session, user_in: UserCreate) -> User:
     user = User(
         username=user_in.username,
@@ -38,12 +50,8 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     return user
 
 
-def update_user(db: Session, user: User, user_in: UserUpdate) -> User:
-    data = user_in.model_dump(exclude_unset=True)
-    password = data.pop("password", None)
-    if password is not None:
-        user.hashed_password = hash_password(password)
-    for field, value in data.items():
+def update_user(db: Session, user: User, user_in: UserMeUpdate) -> User:
+    for field, value in user_in.model_dump().items():
         setattr(user, field, value)
     commit_or_raise_conflict(db, messages.USER_ALREADY_EXISTS)
     db.refresh(user)

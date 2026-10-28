@@ -1,8 +1,8 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
-from app.core.exceptions import BadRequestException, NotFoundException, error_responses
+from app.core.exceptions import BadRequestException, NotFoundException, UnauthorizedException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import DbSession, ProjectDetail, TaskDetail
+from app.dependencies import CurrentUser, DbSession, ProjectDetail, TaskDetail, get_current_user
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -28,7 +28,8 @@ def read_task(task: TaskDetail) -> TaskRead:
     "/{task_id}",
     response_model=TaskRead,
     summary="Update task",
-    responses=error_responses(NotFoundException, BadRequestException),
+    dependencies=[Depends(get_current_user)],
+    responses=error_responses(UnauthorizedException, NotFoundException, BadRequestException),
 )
 def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRead:
     return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
@@ -38,7 +39,8 @@ def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRea
     "/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete task",
-    responses=error_responses(NotFoundException),
+    dependencies=[Depends(get_current_user)],
+    responses=error_responses(UnauthorizedException, NotFoundException),
 )
 def delete_task(task: TaskDetail, db: DbSession) -> None:
     task_crud.delete_task(db, task)
@@ -59,7 +61,9 @@ def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTa
     response_model=TaskWithTagsRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create task in project",
-    responses=error_responses(NotFoundException, BadRequestException),
+    responses=error_responses(UnauthorizedException, NotFoundException, BadRequestException),
 )
-def create_project_task(task_in: TaskCreate, project: ProjectDetail, db: DbSession) -> TaskWithTagsRead:
-    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, task_in))
+def create_project_task(
+    task_in: TaskCreate, project: ProjectDetail, current_user: CurrentUser, db: DbSession
+) -> TaskWithTagsRead:
+    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, current_user, task_in))

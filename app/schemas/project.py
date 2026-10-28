@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, PositiveInt
+from pydantic import ConfigDict, Field
 
 from app.core.constants import MIN_TEXT_LENGTH, PROJECT_NAME_MAX_LENGTH
 from app.schemas.base import BaseSchema, UpdateSchema
@@ -15,7 +15,7 @@ class ProjectBase(BaseSchema):
 
 
 class ProjectCreate(ProjectBase):
-    owner_id: PositiveInt
+    pass
 
 
 class ProjectUpdate(UpdateSchema):
