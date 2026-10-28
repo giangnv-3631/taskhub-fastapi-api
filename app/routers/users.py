@@ -3,7 +3,7 @@ from fastapi import APIRouter, status
 from app.core.exceptions import ConflictException, NotFoundException, error_responses
 from app.crud import user as user_crud
 from app.dependencies import DbSession, UserDetail
-from app.schemas.user import UserCreate, UserProfile, UserRead, UserUpdate
+from app.schemas.user import UserCreate, UserProfile, UserRead, UserUpdate, Username
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -60,5 +60,5 @@ def delete_user(user: UserDetail, db: DbSession) -> None:
     summary="Get user profile",
     responses=error_responses(NotFoundException),
 )
-def read_user_profile(username: str, db: DbSession) -> UserProfile:
+def read_user_profile(username: Username, db: DbSession) -> UserProfile:
     return UserProfile.model_validate(user_crud.get_user_profile(db, username))

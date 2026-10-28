@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import ConfigDict, EmailStr, Field, StringConstraints
+from pydantic import BeforeValidator, ConfigDict, EmailStr, Field, StringConstraints
 
 from app.core.constants import (
     FULL_NAME_MAX_LENGTH,
@@ -16,9 +16,14 @@ from app.schemas.base import BaseSchema, UpdateSchema
 from app.schemas.project import ProjectRead
 from app.schemas.task import TaskRead
 
+def normalize_username(value: object) -> object:
+    return value.strip().lower() if isinstance(value, str) else value
+
+
 Username = Annotated[
     str,
-    Field(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN),
+    StringConstraints(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN),
+    BeforeValidator(normalize_username),
 ]
 FullName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=FULL_NAME_MAX_LENGTH)]
 Password = Annotated[
