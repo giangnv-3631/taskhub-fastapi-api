@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, String, func, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constants import EMAIL_MAX_LENGTH, FULL_NAME_MAX_LENGTH, HASHED_PASSWORD_MAX_LENGTH
+from app.core.constants import EMAIL_MAX_LENGTH, FULL_NAME_MAX_LENGTH, HASHED_PASSWORD_MAX_LENGTH, USERNAME_MAX_LENGTH
 from app.database import Base
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(USERNAME_MAX_LENGTH), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(EMAIL_MAX_LENGTH), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(FULL_NAME_MAX_LENGTH))
     hashed_password: Mapped[str] = mapped_column(String(HASHED_PASSWORD_MAX_LENGTH))

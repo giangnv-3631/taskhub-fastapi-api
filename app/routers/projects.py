@@ -52,3 +52,4 @@ def update_project(project_in: ProjectUpdate, project: ProjectDetail, db: DbSess
 )
 def delete_project(project: ProjectDetail, db: DbSession) -> None:
     project_crud.delete_project(db, project)
+

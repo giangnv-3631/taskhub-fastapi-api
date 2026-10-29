@@ -7,6 +7,7 @@ from app.core import messages
 from app.core.constants import MIN_TEXT_LENGTH, TASK_TITLE_MAX_LENGTH
 from app.enums import TaskPriority, TaskStatus
 from app.schemas.base import BaseSchema, UpdateSchema
+from app.schemas.tag import TagRead
 
 TaskTitle = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=TASK_TITLE_MAX_LENGTH)]
 
@@ -20,8 +21,8 @@ class TaskBase(BaseSchema):
 
 
 class TaskCreate(TaskBase):
-    project_id: PositiveInt
     creator_id: PositiveInt
+    tag_ids: list[PositiveInt] = Field(default_factory=list)
 
     @field_validator("due_date")
     @classmethod
@@ -50,3 +51,7 @@ class TaskRead(TaskBase):
     project_id: int
     creator_id: int
     created_at: datetime
+
+
+class TaskWithTagsRead(TaskRead):
+    tags: list[TagRead]
