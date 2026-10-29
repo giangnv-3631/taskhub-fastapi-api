@@ -12,6 +12,7 @@ app.add_exception_handler(AppException, app_exception_handler)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(tasks.router)
+app.include_router(tasks.project_tasks_router)
 app.include_router(tags.router)
 
 
