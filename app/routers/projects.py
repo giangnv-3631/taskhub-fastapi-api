@@ -2,7 +2,7 @@ from fastapi import status
 
 from app.core.exceptions import NotFoundException, error_responses
 from app.crud import project as project_crud
-from app.dependencies import CurrentUser, DbSession, ProjectDetail
+from app.dependencies import DbSession, ManagedProject, ProjectDetail, ProjectManager
 from app.routers.common import protected_router
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
@@ -20,7 +20,7 @@ def list_projects(db: DbSession) -> list[ProjectRead]:
     status_code=status.HTTP_201_CREATED,
     summary="Create project",
 )
-def create_project(project_in: ProjectCreate, current_user: CurrentUser, db: DbSession) -> ProjectRead:
+def create_project(project_in: ProjectCreate, current_user: ProjectManager, db: DbSession) -> ProjectRead:
     return ProjectRead.model_validate(project_crud.create_project(db, current_user, project_in))
 
 
@@ -40,7 +40,7 @@ def read_project(project: ProjectDetail) -> ProjectRead:
     summary="Update project",
     responses=error_responses(NotFoundException),
 )
-def update_project(project_in: ProjectUpdate, project: ProjectDetail, db: DbSession) -> ProjectRead:
+def update_project(project_in: ProjectUpdate, project: ManagedProject, db: DbSession) -> ProjectRead:
     return ProjectRead.model_validate(project_crud.update_project(db, project, project_in))
 
 
@@ -50,6 +50,6 @@ def update_project(project_in: ProjectUpdate, project: ProjectDetail, db: DbSess
     summary="Delete project",
     responses=error_responses(NotFoundException),
 )
-def delete_project(project: ProjectDetail, db: DbSession) -> None:
+def delete_project(project: ManagedProject, db: DbSession) -> None:
     project_crud.delete_project(db, project)
 

@@ -1,18 +1,34 @@
 from fastapi import status
 
-from app.core.exceptions import BadRequestException, NotFoundException, error_responses
+from app.core.constants import DEFAULT_PAGE_LIMIT
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import CurrentUser, DbSession, ProjectDetail, TaskDetail
+from app.dependencies import CurrentUser, DbSession, Limit, ProjectDetail, Skip, TaskDetail
 from app.routers.common import protected_router
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
+from app.schemas.task import (
+    TaskBookmarkRead,
+    TaskCreate,
+    TaskPriorityFilter,
+    TaskRead,
+    TaskStatusFilter,
+    TaskUpdate,
+    TaskWithTagsRead,
+)
 
 router = protected_router("/api/tasks", "tasks")
 project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
 
 
 @router.get("", response_model=list[TaskRead], summary="List tasks")
-def list_tasks(db: DbSession) -> list[TaskRead]:
-    return [TaskRead.model_validate(task) for task in task_crud.get_tasks(db)]
+def list_tasks(
+    db: DbSession,
+    status: TaskStatusFilter = None,
+    priority: TaskPriorityFilter = None,
+    skip: Skip = 0,
+    limit: Limit = DEFAULT_PAGE_LIMIT,
+) -> list[TaskRead]:
+    tasks = task_crud.get_tasks(db, status, priority, skip, limit)
+    return [TaskRead.model_validate(task) for task in tasks]
 
 
 @router.get(
@@ -45,14 +61,33 @@ def delete_task(task: TaskDetail, db: DbSession) -> None:
     task_crud.delete_task(db, task)
 
 
+@router.post(
+    "/{task_id}/bookmark",
+    response_model=TaskBookmarkRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Bookmark task",
+    responses=error_responses(NotFoundException, ConflictException),
+)
+def bookmark_task(task: TaskDetail, current_user: CurrentUser, db: DbSession) -> TaskBookmarkRead:
+    return TaskBookmarkRead.model_validate(task_crud.bookmark_task(db, task, current_user))
+
+
 @project_tasks_router.get(
     "",
     response_model=list[TaskWithTagsRead],
     summary="List tasks of project",
     responses=error_responses(NotFoundException),
 )
-def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTagsRead]:
-    return [TaskWithTagsRead.model_validate(task) for task in task_crud.get_project_tasks(db, project.id)]
+def list_project_tasks(
+    project: ProjectDetail,
+    db: DbSession,
+    status: TaskStatusFilter = None,
+    priority: TaskPriorityFilter = None,
+    skip: Skip = 0,
+    limit: Limit = DEFAULT_PAGE_LIMIT,
+) -> list[TaskWithTagsRead]:
+    tasks = task_crud.get_project_tasks(db, project.id, status, priority, skip, limit)
+    return [TaskWithTagsRead.model_validate(task) for task in tasks]
 
 
 @project_tasks_router.post(

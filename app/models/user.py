@@ -1,11 +1,18 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, func, true
+from sqlalchemy import DateTime, Enum, String, func, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.constants import EMAIL_MAX_LENGTH, FULL_NAME_MAX_LENGTH, HASHED_PASSWORD_MAX_LENGTH, USERNAME_MAX_LENGTH
+from app.core.constants import (
+    EMAIL_MAX_LENGTH,
+    ENUM_MAX_LENGTH,
+    FULL_NAME_MAX_LENGTH,
+    HASHED_PASSWORD_MAX_LENGTH,
+    USERNAME_MAX_LENGTH,
+)
 from app.database import Base
+from app.enums import UserRole, enum_values
 
 if TYPE_CHECKING:
     from app.models.comment import Comment
@@ -21,6 +28,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(EMAIL_MAX_LENGTH), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(FULL_NAME_MAX_LENGTH))
     hashed_password: Mapped[str] = mapped_column(String(HASHED_PASSWORD_MAX_LENGTH))
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, native_enum=False, length=ENUM_MAX_LENGTH, values_callable=enum_values),
+        default=UserRole.MEMBER,
+        server_default=UserRole.MEMBER.value,
+    )
     is_active: Mapped[bool] = mapped_column(default=True, server_default=true())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

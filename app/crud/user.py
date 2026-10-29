@@ -5,7 +5,8 @@ from app.core import messages
 from app.core.exceptions import ForbiddenException, NotFoundException, UnauthorizedException
 from app.crud.common import commit_or_raise_conflict
 from app.models import User
-from app.schemas.user import UserCreate, UserMeUpdate, normalize_username
+from app.schemas.base import normalize_lowercase
+from app.schemas.user import UserCreate, UserMeUpdate
 from app.security import DUMMY_PASSWORD_HASH, hash_password, verify_password
 
 
@@ -26,7 +27,7 @@ def get_user_profile(db: Session, username: str) -> User:
 
 
 def authenticate_user(db: Session, username: str, password: str) -> User:
-    user = db.scalar(select(User).where(User.username == normalize_username(username)))
+    user = db.scalar(select(User).where(User.username == normalize_lowercase(username)))
     if user is None:
         verify_password(password, DUMMY_PASSWORD_HASH)
         raise UnauthorizedException(messages.INVALID_CREDENTIALS)
