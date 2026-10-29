@@ -37,11 +37,10 @@ def get_project_tasks(db: Session, project_id: int):
     return db.scalars(statement).unique().all()
 
 
-def create_task(db: Session, project: Project, task_in: TaskCreate) -> Task:
-    get_or_raise(db, User, task_in.creator_id, BadRequestException(messages.CREATOR_NOT_FOUND))
+def create_task(db: Session, project: Project, creator: User, task_in: TaskCreate) -> Task:
     ensure_assignee_exists(db, task_in.assignee_id)
     tags = get_tags_or_raise(db, task_in.tag_ids)
-    task = Task(**task_in.model_dump(exclude={"tag_ids"}), project=project, tags=tags)
+    task = Task(**task_in.model_dump(exclude={"tag_ids"}), project=project, creator=creator, tags=tags)
     db.add(task)
     db.commit()
     db.refresh(task)

@@ -1,11 +1,12 @@
-from fastapi import APIRouter, status
+from fastapi import status
 
-from app.core.exceptions import BadRequestException, NotFoundException, error_responses
+from app.core.exceptions import NotFoundException, error_responses
 from app.crud import project as project_crud
-from app.dependencies import DbSession, ProjectDetail
+from app.dependencies import CurrentUser, DbSession, ProjectDetail
+from app.routers.common import protected_router
 from app.schemas.project import ProjectCreate, ProjectRead, ProjectUpdate
 
-router = APIRouter(prefix="/api/projects", tags=["projects"])
+router = protected_router("/api/projects", "projects")
 
 
 @router.get("", response_model=list[ProjectRead], summary="List projects")
@@ -18,10 +19,9 @@ def list_projects(db: DbSession) -> list[ProjectRead]:
     response_model=ProjectRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create project",
-    responses=error_responses(BadRequestException),
 )
-def create_project(project_in: ProjectCreate, db: DbSession) -> ProjectRead:
-    return ProjectRead.model_validate(project_crud.create_project(db, project_in))
+def create_project(project_in: ProjectCreate, current_user: CurrentUser, db: DbSession) -> ProjectRead:
+    return ProjectRead.model_validate(project_crud.create_project(db, current_user, project_in))
 
 
 @router.get(
