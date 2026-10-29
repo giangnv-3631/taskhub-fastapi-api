@@ -11,14 +11,16 @@ from app.core.exceptions import (
     error_responses,
 )
 from app.crud import user as user_crud
-from app.dependencies import CurrentUser, DbSession, UserDetail, get_current_user
+from app.dependencies import CurrentUser, DbSession, UserDetail
+from app.routers.common import protected_router
 from app.schemas.user import Token, UserCreate, UserMeUpdate, UserProfile, UserRead, Username
 from app.security import create_access_token
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+auth_router = APIRouter(prefix="/api/users", tags=["users"])
+router = protected_router("/api/users", "users")
 
 
-@router.post(
+@auth_router.post(
     "/register",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
@@ -29,7 +31,7 @@ def register(user_in: UserCreate, db: DbSession) -> UserRead:
     return UserRead.model_validate(user_crud.create_user(db, user_in))
 
 
-@router.post(
+@auth_router.post(
     "/login",
     response_model=Token,
     summary="Login",
@@ -40,12 +42,7 @@ def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: DbSess
     return Token(access_token=create_access_token(str(user.id)))
 
 
-@router.get(
-    "/me",
-    response_model=UserRead,
-    summary="Get current user",
-    responses=error_responses(UnauthorizedException, ForbiddenException),
-)
+@router.get("/me", response_model=UserRead, summary="Get current user")
 def read_me(current_user: CurrentUser) -> UserRead:
     return UserRead.model_validate(current_user)
 
@@ -54,7 +51,7 @@ def read_me(current_user: CurrentUser) -> UserRead:
     "/me",
     response_model=UserRead,
     summary="Update current user",
-    responses=error_responses(UnauthorizedException, ForbiddenException, ConflictException),
+    responses=error_responses(ConflictException),
 )
 def update_me(user_in: UserMeUpdate, current_user: CurrentUser, db: DbSession) -> UserRead:
     return UserRead.model_validate(user_crud.update_user(db, current_user, user_in))
@@ -79,8 +76,7 @@ def read_user(user: UserDetail) -> UserRead:
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete user",
-    dependencies=[Depends(get_current_user)],
-    responses=error_responses(UnauthorizedException, NotFoundException, ConflictException),
+    responses=error_responses(NotFoundException, ConflictException),
 )
 def delete_user(user: UserDetail, db: DbSession) -> None:
     user_crud.delete_user(db, user)

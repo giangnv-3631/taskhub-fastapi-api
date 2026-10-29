@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import status
 
-from app.core.exceptions import BadRequestException, NotFoundException, UnauthorizedException, error_responses
+from app.core.exceptions import BadRequestException, NotFoundException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import CurrentUser, DbSession, ProjectDetail, TaskDetail, get_current_user
+from app.dependencies import CurrentUser, DbSession, ProjectDetail, TaskDetail
+from app.routers.common import protected_router
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-project_tasks_router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["tasks"])
+router = protected_router("/api/tasks", "tasks")
+project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
 
 
 @router.get("", response_model=list[TaskRead], summary="List tasks")
@@ -28,8 +29,7 @@ def read_task(task: TaskDetail) -> TaskRead:
     "/{task_id}",
     response_model=TaskRead,
     summary="Update task",
-    dependencies=[Depends(get_current_user)],
-    responses=error_responses(UnauthorizedException, NotFoundException, BadRequestException),
+    responses=error_responses(NotFoundException, BadRequestException),
 )
 def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRead:
     return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
@@ -39,8 +39,7 @@ def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRea
     "/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete task",
-    dependencies=[Depends(get_current_user)],
-    responses=error_responses(UnauthorizedException, NotFoundException),
+    responses=error_responses(NotFoundException),
 )
 def delete_task(task: TaskDetail, db: DbSession) -> None:
     task_crud.delete_task(db, task)
@@ -61,7 +60,7 @@ def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTa
     response_model=TaskWithTagsRead,
     status_code=status.HTTP_201_CREATED,
     summary="Create task in project",
-    responses=error_responses(UnauthorizedException, NotFoundException, BadRequestException),
+    responses=error_responses(NotFoundException, BadRequestException),
 )
 def create_project_task(
     task_in: TaskCreate, project: ProjectDetail, current_user: CurrentUser, db: DbSession
