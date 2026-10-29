@@ -13,19 +13,16 @@ from app.core.constants import (
     USERNAME_MIN_LENGTH,
     USERNAME_PATTERN,
 )
-from app.schemas.base import BaseSchema
+from app.enums import UserRole
+from app.schemas.base import BaseSchema, normalize_lowercase
 from app.schemas.project import ProjectRead
 from app.schemas.task import TaskRead
-
-
-def normalize_username(value: object) -> object:
-    return value.strip().lower() if isinstance(value, str) else value
 
 
 Username = Annotated[
     str,
     StringConstraints(min_length=USERNAME_MIN_LENGTH, max_length=USERNAME_MAX_LENGTH, pattern=USERNAME_PATTERN),
-    BeforeValidator(normalize_username),
+    BeforeValidator(normalize_lowercase),
 ]
 FullName = Annotated[str, Field(min_length=MIN_TEXT_LENGTH, max_length=FULL_NAME_MAX_LENGTH)]
 Password = Annotated[
@@ -57,6 +54,7 @@ class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    role: UserRole
     is_active: bool
     created_at: datetime
 
