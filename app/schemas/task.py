@@ -46,7 +46,10 @@ class TaskUpdate(UpdateSchema):
     status: TaskStatus | None = None
     priority: TaskPriority | None = None
     due_date: date | None = None
-    assignee_id: PositiveInt | None = None
+
+
+class TaskAssign(BaseSchema):
+    assignee_id: PositiveInt
 
 
 class TaskRead(TaskBase):

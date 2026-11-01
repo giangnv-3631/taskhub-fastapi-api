@@ -9,7 +9,7 @@ from app.core.exceptions import ForbiddenException, NotFoundException, Unauthori
 from app.crud.common import get_or_raise
 from app.database import get_db
 from app.enums import UserRole
-from app.models import Project, Task, User
+from app.models import Comment, Project, Task, User
 from app.schemas.pagination import PaginationParams
 from app.schemas.task import TaskFilterParams
 from app.security import decode_access_token
@@ -69,8 +69,12 @@ ProjectDetail = Annotated[Project, Depends(get_project_detail)]
 TaskDetail = Annotated[Task, Depends(get_task_detail)]
 
 
+def can_manage_project(project: Project, user: User) -> bool:
+    return user.role == UserRole.ADMIN or project.owner_id == user.id
+
+
 def ensure_can_manage_project(project: Project, user: User) -> None:
-    if user.role != UserRole.ADMIN and project.owner_id != user.id:
+    if not can_manage_project(project, user):
         raise ForbiddenException(messages.PROJECT_PERMISSION_DENIED)
 
 
@@ -86,3 +90,22 @@ def get_managed_task(task: TaskDetail, current_user: CurrentUser) -> Task:
 
 ManagedProject = Annotated[Project, Depends(get_managed_project)]
 ManagedTask = Annotated[Task, Depends(get_managed_task)]
+
+
+def get_comment_detail(comment_id: int, task: TaskDetail, db: DbSession) -> Comment:
+    comment = db.get(Comment, comment_id)
+    if comment is None or comment.task_id != task.id:
+        raise NotFoundException(messages.COMMENT_NOT_FOUND)
+    return comment
+
+
+CommentDetail = Annotated[Comment, Depends(get_comment_detail)]
+
+
+def get_managed_comment(comment: CommentDetail, current_user: CurrentUser) -> Comment:
+    if comment.author_id != current_user.id and not can_manage_project(comment.task.project, current_user):
+        raise ForbiddenException(messages.COMMENT_PERMISSION_DENIED)
+    return comment
+
+
+ManagedComment = Annotated[Comment, Depends(get_managed_comment)]
