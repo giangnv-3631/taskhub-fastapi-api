@@ -1,12 +1,13 @@
-from fastapi import APIRouter, status
+from fastapi import status
 
 from app.core.exceptions import BadRequestException, NotFoundException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import DbSession, ProjectDetail, TaskDetail
+from app.dependencies import CurrentUser, DbSession, ProjectDetail, TaskDetail
+from app.routers.common import protected_router
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-project_tasks_router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["tasks"])
+router = protected_router("/api/tasks", "tasks")
+project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
 
 
 @router.get("", response_model=list[TaskRead], summary="List tasks")
@@ -61,5 +62,7 @@ def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTa
     summary="Create task in project",
     responses=error_responses(NotFoundException, BadRequestException),
 )
-def create_project_task(task_in: TaskCreate, project: ProjectDetail, db: DbSession) -> TaskWithTagsRead:
-    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, task_in))
+def create_project_task(
+    task_in: TaskCreate, project: ProjectDetail, current_user: CurrentUser, db: DbSession
+) -> TaskWithTagsRead:
+    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, current_user, task_in))

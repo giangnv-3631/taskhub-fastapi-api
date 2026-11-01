@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class AppException(Exception):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    headers: dict[str, str] | None = None
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -16,6 +17,15 @@ class AppException(Exception):
 
 class BadRequestException(AppException):
     status_code = status.HTTP_400_BAD_REQUEST
+
+
+class UnauthorizedException(AppException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    headers = {"WWW-Authenticate": "Bearer"}
+
+
+class ForbiddenException(AppException):
+    status_code = status.HTTP_403_FORBIDDEN
 
 
 class NotFoundException(AppException):
@@ -31,7 +41,7 @@ class ErrorResponse(BaseModel):
 
 
 def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message}, headers=exc.headers)
 
 
 def error_responses(*exceptions: type[AppException]) -> dict[int | str, dict[str, Any]]:
