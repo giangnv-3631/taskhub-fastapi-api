@@ -1,34 +1,29 @@
 from fastapi import status
 
-from app.core.constants import DEFAULT_PAGE_LIMIT
 from app.core.exceptions import BadRequestException, ConflictException, NotFoundException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import CurrentUser, DbSession, Limit, ProjectDetail, Skip, TaskDetail
-from app.routers.common import protected_router
-from app.schemas.task import (
-    TaskBookmarkRead,
-    TaskCreate,
-    TaskPriorityFilter,
-    TaskRead,
-    TaskStatusFilter,
-    TaskUpdate,
-    TaskWithTagsRead,
+from app.dependencies import (
+    CurrentUser,
+    DbSession,
+    ManagedProject,
+    ManagedTask,
+    PaginationDep,
+    ProjectDetail,
+    TaskDetail,
+    TaskFilterDep,
 )
+from app.routers.common import protected_router
+from app.schemas.pagination import Page
+from app.schemas.task import TaskBookmarkRead, TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
 router = protected_router("/api/tasks", "tasks")
 project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
 
 
-@router.get("", response_model=list[TaskRead], summary="List tasks")
-def list_tasks(
-    db: DbSession,
-    status: TaskStatusFilter = None,
-    priority: TaskPriorityFilter = None,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_LIMIT,
-) -> list[TaskRead]:
-    tasks = task_crud.get_tasks(db, status, priority, skip, limit)
-    return [TaskRead.model_validate(task) for task in tasks]
+@router.get("", response_model=Page[TaskRead], summary="List tasks")
+def list_tasks(filters: TaskFilterDep, pagination: PaginationDep, db: DbSession) -> Page[TaskRead]:
+    tasks, total = task_crud.get_tasks(db, filters, pagination)
+    return Page[TaskRead](items=tasks, total=total)
 
 
 @router.get(
@@ -47,7 +42,7 @@ def read_task(task: TaskDetail) -> TaskRead:
     summary="Update task",
     responses=error_responses(NotFoundException, BadRequestException),
 )
-def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRead:
+def update_task(task_in: TaskUpdate, task: ManagedTask, db: DbSession) -> TaskRead:
     return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
 
 
@@ -57,7 +52,7 @@ def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRea
     summary="Delete task",
     responses=error_responses(NotFoundException),
 )
-def delete_task(task: TaskDetail, db: DbSession) -> None:
+def delete_task(task: ManagedTask, db: DbSession) -> None:
     task_crud.delete_task(db, task)
 
 
@@ -74,20 +69,15 @@ def bookmark_task(task: TaskDetail, current_user: CurrentUser, db: DbSession) ->
 
 @project_tasks_router.get(
     "",
-    response_model=list[TaskWithTagsRead],
+    response_model=Page[TaskWithTagsRead],
     summary="List tasks of project",
     responses=error_responses(NotFoundException),
 )
 def list_project_tasks(
-    project: ProjectDetail,
-    db: DbSession,
-    status: TaskStatusFilter = None,
-    priority: TaskPriorityFilter = None,
-    skip: Skip = 0,
-    limit: Limit = DEFAULT_PAGE_LIMIT,
-) -> list[TaskWithTagsRead]:
-    tasks = task_crud.get_project_tasks(db, project.id, status, priority, skip, limit)
-    return [TaskWithTagsRead.model_validate(task) for task in tasks]
+    project: ProjectDetail, filters: TaskFilterDep, pagination: PaginationDep, db: DbSession
+) -> Page[TaskWithTagsRead]:
+    tasks, total = task_crud.get_project_tasks(db, project.id, filters, pagination)
+    return Page[TaskWithTagsRead](items=tasks, total=total)
 
 
 @project_tasks_router.post(
@@ -98,6 +88,6 @@ def list_project_tasks(
     responses=error_responses(NotFoundException, BadRequestException),
 )
 def create_project_task(
-    task_in: TaskCreate, project: ProjectDetail, current_user: CurrentUser, db: DbSession
+    task_in: TaskCreate, project: ManagedProject, current_user: CurrentUser, db: DbSession
 ) -> TaskWithTagsRead:
     return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, current_user, task_in))

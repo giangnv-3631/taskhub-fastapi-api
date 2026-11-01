@@ -59,6 +59,8 @@ def update_user(db: Session, user: User, user_in: UserMeUpdate) -> User:
     return user
 
 
-def delete_user(db: Session, user: User) -> None:
+def delete_user(db: Session, user: User, current_user: User) -> None:
+    if user.id == current_user.id:
+        raise ForbiddenException(messages.CANNOT_DELETE_SELF)
     db.delete(user)
     commit_or_raise_conflict(db, messages.USER_HAS_RELATED_DATA)

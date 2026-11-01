@@ -11,7 +11,7 @@ from app.core.exceptions import (
     error_responses,
 )
 from app.crud import user as user_crud
-from app.dependencies import CurrentUser, DbSession, UserDetail, verify_admin_role
+from app.dependencies import AdminUser, CurrentUser, DbSession, UserDetail
 from app.routers.common import protected_router
 from app.schemas.user import Token, UserCreate, UserMeUpdate, UserProfile, UserRead, Username
 from app.security import create_access_token
@@ -76,11 +76,10 @@ def read_user(user: UserDetail) -> UserRead:
     "/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete user",
-    dependencies=[Depends(verify_admin_role)],
     responses=error_responses(NotFoundException, ConflictException),
 )
-def delete_user(user: UserDetail, db: DbSession) -> None:
-    user_crud.delete_user(db, user)
+def delete_user(user: UserDetail, current_user: AdminUser, db: DbSession) -> None:
+    user_crud.delete_user(db, user, current_user)
 
 
 @router.get(

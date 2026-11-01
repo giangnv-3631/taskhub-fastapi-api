@@ -5,17 +5,18 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core import messages
-from app.core.constants import DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT
 from app.core.exceptions import ForbiddenException, NotFoundException, UnauthorizedException
 from app.crud.common import get_or_raise
 from app.database import get_db
 from app.enums import UserRole
 from app.models import Project, Task, User
+from app.schemas.pagination import PaginationParams
+from app.schemas.task import TaskFilterParams
 from app.security import decode_access_token
 
 DbSession = Annotated[Session, Depends(get_db)]
-Skip = Annotated[int, Query(ge=0)]
-Limit = Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)]
+PaginationDep = Annotated[PaginationParams, Query()]
+TaskFilterDep = Annotated[TaskFilterParams, Query()]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
 
@@ -61,16 +62,27 @@ def get_task_detail(task_id: int, db: DbSession) -> Task:
     return get_or_raise(db, Task, task_id, NotFoundException(messages.TASK_NOT_FOUND))
 
 
+AdminUser = Annotated[User, Depends(verify_admin_role)]
 ProjectManager = Annotated[User, Depends(verify_project_manager)]
 UserDetail = Annotated[User, Depends(get_user_detail)]
 ProjectDetail = Annotated[Project, Depends(get_project_detail)]
 TaskDetail = Annotated[Task, Depends(get_task_detail)]
 
 
-def get_managed_project(project: ProjectDetail, current_user: CurrentUser) -> Project:
-    if current_user.role != UserRole.ADMIN and project.owner_id != current_user.id:
+def ensure_can_manage_project(project: Project, user: User) -> None:
+    if user.role != UserRole.ADMIN and project.owner_id != user.id:
         raise ForbiddenException(messages.PROJECT_PERMISSION_DENIED)
+
+
+def get_managed_project(project: ProjectDetail, current_user: CurrentUser) -> Project:
+    ensure_can_manage_project(project, current_user)
     return project
 
 
+def get_managed_task(task: TaskDetail, current_user: CurrentUser) -> Task:
+    ensure_can_manage_project(task.project, current_user)
+    return task
+
+
 ManagedProject = Annotated[Project, Depends(get_managed_project)]
+ManagedTask = Annotated[Task, Depends(get_managed_task)]

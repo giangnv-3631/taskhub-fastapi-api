@@ -1,12 +1,12 @@
 from sqlalchemy import Select, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.core import messages
 from app.core.exceptions import BadRequestException
-from app.crud.common import commit_or_raise_conflict, get_or_raise
-from app.enums import TaskPriority, TaskStatus
+from app.crud.common import commit_or_raise_conflict, get_or_raise, paginate
 from app.models import Project, Tag, Task, TaskBookmark, User
-from app.schemas.task import TaskCreate, TaskUpdate
+from app.schemas.pagination import PaginationParams
+from app.schemas.task import TaskCreate, TaskFilterParams, TaskUpdate
 
 
 def ensure_assignee_exists(db: Session, assignee_id: int | None) -> None:
@@ -24,25 +24,21 @@ def get_tags_or_raise(db: Session, tag_ids: list[int]) -> list[Tag]:
     return list(tags)
 
 
-def filter_tasks(
-    statement: Select, status: TaskStatus | None, priority: TaskPriority | None, skip: int, limit: int
-) -> Select:
-    if status is not None:
-        statement = statement.where(Task.status == status)
-    if priority is not None:
-        statement = statement.where(Task.priority == priority)
-    return statement.order_by(Task.id).offset(skip).limit(limit)
+def filter_tasks(statement: Select, filters: TaskFilterParams) -> Select:
+    if filters.status is not None:
+        statement = statement.where(Task.status == filters.status)
+    if filters.priority is not None:
+        statement = statement.where(Task.priority == filters.priority)
+    return statement.order_by(Task.id)
 
 
-def get_tasks(db: Session, status: TaskStatus | None, priority: TaskPriority | None, skip: int, limit: int):
-    return db.scalars(filter_tasks(select(Task), status, priority, skip, limit)).all()
+def get_tasks(db: Session, filters: TaskFilterParams, pagination: PaginationParams):
+    return paginate(db, filter_tasks(select(Task), filters), pagination)
 
 
-def get_project_tasks(
-    db: Session, project_id: int, status: TaskStatus | None, priority: TaskPriority | None, skip: int, limit: int
-):
-    statement = select(Task).where(Task.project_id == project_id).options(joinedload(Task.tags))
-    return db.scalars(filter_tasks(statement, status, priority, skip, limit)).unique().all()
+def get_project_tasks(db: Session, project_id: int, filters: TaskFilterParams, pagination: PaginationParams):
+    statement = select(Task).where(Task.project_id == project_id).options(selectinload(Task.tags))
+    return paginate(db, filter_tasks(statement, filters), pagination)
 
 
 def create_task(db: Session, project: Project, creator: User, task_in: TaskCreate) -> Task:

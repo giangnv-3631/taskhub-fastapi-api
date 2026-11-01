@@ -13,7 +13,8 @@ INVALID_TOKEN = "Could not validate credentials"
 INACTIVE_USER = "Inactive user"
 ADMIN_ROLE_REQUIRED = "Admin role required"
 PROJECT_MANAGER_ROLE_REQUIRED = "Project manager or admin role required"
-PROJECT_PERMISSION_DENIED = "Only the project owner or an admin can modify this project"
+PROJECT_PERMISSION_DENIED = "Only the project owner or an admin can manage this project"
+CANNOT_DELETE_SELF = "You cannot delete your own account"
 
 TASK_ALREADY_BOOKMARKED = "Task already bookmarked"
 

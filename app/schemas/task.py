@@ -14,6 +14,11 @@ TaskStatusFilter = Annotated[TaskStatus | None, BeforeValidator(normalize_lowerc
 TaskPriorityFilter = Annotated[TaskPriority | None, BeforeValidator(normalize_lowercase)]
 
 
+class TaskFilterParams(BaseSchema):
+    status: TaskStatusFilter = None
+    priority: TaskPriorityFilter = None
+
+
 class TaskBase(BaseSchema):
     title: TaskTitle
     description: str | None = None
