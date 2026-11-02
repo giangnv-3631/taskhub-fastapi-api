@@ -5,6 +5,7 @@ from app.crud import task as task_crud
 from app.dependencies import (
     CurrentUser,
     DbSession,
+    EditableTask,
     ManagedProject,
     ManagedTask,
     PaginationDep,
@@ -42,7 +43,7 @@ def read_task(task: TaskDetail) -> TaskRead:
     summary="Update task",
     responses=error_responses(NotFoundException),
 )
-def update_task(task_in: TaskUpdate, task: ManagedTask, db: DbSession) -> TaskRead:
+def update_task(task_in: TaskUpdate, task: EditableTask, db: DbSession) -> TaskRead:
     return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
 
 

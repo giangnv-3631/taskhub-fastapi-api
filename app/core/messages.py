@@ -17,7 +17,9 @@ ADMIN_ROLE_REQUIRED = "Admin role required"
 PROJECT_MANAGER_ROLE_REQUIRED = "Project manager or admin role required"
 PROJECT_PERMISSION_DENIED = "Only the project owner or an admin can manage this project"
 CANNOT_DELETE_SELF = "You cannot delete your own account"
-COMMENT_PERMISSION_DENIED = "Only the comment author, the project owner or an admin can modify this comment"
+TASK_UPDATE_DENIED = "Only the assignee, the project owner or an admin can update this task"
+COMMENT_UPDATE_DENIED = "Only the comment author can edit this comment"
+COMMENT_DELETE_DENIED = "Only the comment author, the project owner or an admin can delete this comment"
 
 TASK_ALREADY_BOOKMARKED = "Task already bookmarked"
 

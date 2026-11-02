@@ -88,8 +88,15 @@ def get_managed_task(task: TaskDetail, current_user: CurrentUser) -> Task:
     return task
 
 
+def get_editable_task(task: TaskDetail, current_user: CurrentUser) -> Task:
+    if task.assignee_id != current_user.id and not can_manage_project(task.project, current_user):
+        raise ForbiddenException(messages.TASK_UPDATE_DENIED)
+    return task
+
+
 ManagedProject = Annotated[Project, Depends(get_managed_project)]
 ManagedTask = Annotated[Task, Depends(get_managed_task)]
+EditableTask = Annotated[Task, Depends(get_editable_task)]
 
 
 def get_comment_detail(comment_id: int, task: TaskDetail, db: DbSession) -> Comment:
@@ -102,10 +109,17 @@ def get_comment_detail(comment_id: int, task: TaskDetail, db: DbSession) -> Comm
 CommentDetail = Annotated[Comment, Depends(get_comment_detail)]
 
 
-def get_managed_comment(comment: CommentDetail, current_user: CurrentUser) -> Comment:
-    if comment.author_id != current_user.id and not can_manage_project(comment.task.project, current_user):
-        raise ForbiddenException(messages.COMMENT_PERMISSION_DENIED)
+def get_editable_comment(comment: CommentDetail, current_user: CurrentUser) -> Comment:
+    if comment.author_id != current_user.id:
+        raise ForbiddenException(messages.COMMENT_UPDATE_DENIED)
     return comment
 
 
-ManagedComment = Annotated[Comment, Depends(get_managed_comment)]
+def get_deletable_comment(comment: CommentDetail, current_user: CurrentUser) -> Comment:
+    if comment.author_id != current_user.id and not can_manage_project(comment.task.project, current_user):
+        raise ForbiddenException(messages.COMMENT_DELETE_DENIED)
+    return comment
+
+
+EditableComment = Annotated[Comment, Depends(get_editable_comment)]
+DeletableComment = Annotated[Comment, Depends(get_deletable_comment)]

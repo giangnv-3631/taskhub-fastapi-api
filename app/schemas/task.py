@@ -49,7 +49,7 @@ class TaskUpdate(UpdateSchema):
 
 
 class TaskAssign(BaseSchema):
-    assignee_id: PositiveInt
+    assignee_id: PositiveInt | None
 
 
 class TaskRead(TaskBase):
