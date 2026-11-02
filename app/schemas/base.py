@@ -5,6 +5,10 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from app.core import messages
 
 
+def normalize_lowercase(value: object) -> object:
+    return value.strip().lower() if isinstance(value, str) else value
+
+
 class BaseSchema(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 

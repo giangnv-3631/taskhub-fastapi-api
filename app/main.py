@@ -9,6 +9,7 @@ app = FastAPI(title="TaskHub API")
 
 app.add_exception_handler(AppException, app_exception_handler)
 
+app.include_router(users.auth_router)
 app.include_router(users.router)
 app.include_router(projects.router)
 app.include_router(tasks.router)

@@ -1,11 +1,12 @@
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import Select, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.core import messages
 from app.core.exceptions import BadRequestException
-from app.crud.common import get_or_raise
-from app.models import Project, Tag, Task, User
-from app.schemas.task import TaskCreate, TaskUpdate
+from app.crud.common import commit_or_raise_conflict, get_or_raise, paginate
+from app.models import Project, Tag, Task, TaskBookmark, User
+from app.schemas.pagination import PaginationParams
+from app.schemas.task import TaskCreate, TaskFilterParams, TaskUpdate
 
 
 def ensure_assignee_exists(db: Session, assignee_id: int | None) -> None:
@@ -23,25 +24,27 @@ def get_tags_or_raise(db: Session, tag_ids: list[int]) -> list[Tag]:
     return list(tags)
 
 
-def get_tasks(db: Session):
-    return db.scalars(select(Task).order_by(Task.id)).all()
+def filter_tasks(statement: Select, filters: TaskFilterParams) -> Select:
+    if filters.status is not None:
+        statement = statement.where(Task.status == filters.status)
+    if filters.priority is not None:
+        statement = statement.where(Task.priority == filters.priority)
+    return statement.order_by(Task.id)
 
 
-def get_project_tasks(db: Session, project_id: int):
-    statement = (
-        select(Task)
-        .where(Task.project_id == project_id)
-        .options(joinedload(Task.tags))
-        .order_by(Task.id)
-    )
-    return db.scalars(statement).unique().all()
+def get_tasks(db: Session, filters: TaskFilterParams, pagination: PaginationParams):
+    return paginate(db, filter_tasks(select(Task), filters), pagination)
 
 
-def create_task(db: Session, project: Project, task_in: TaskCreate) -> Task:
-    get_or_raise(db, User, task_in.creator_id, BadRequestException(messages.CREATOR_NOT_FOUND))
+def get_project_tasks(db: Session, project_id: int, filters: TaskFilterParams, pagination: PaginationParams):
+    statement = select(Task).where(Task.project_id == project_id).options(selectinload(Task.tags))
+    return paginate(db, filter_tasks(statement, filters), pagination)
+
+
+def create_task(db: Session, project: Project, creator: User, task_in: TaskCreate) -> Task:
     ensure_assignee_exists(db, task_in.assignee_id)
     tags = get_tags_or_raise(db, task_in.tag_ids)
-    task = Task(**task_in.model_dump(exclude={"tag_ids"}), project=project, tags=tags)
+    task = Task(**task_in.model_dump(exclude={"tag_ids"}), project=project, creator=creator, tags=tags)
     db.add(task)
     db.commit()
     db.refresh(task)
@@ -60,3 +63,11 @@ def update_task(db: Session, task: Task, task_in: TaskUpdate) -> Task:
 def delete_task(db: Session, task: Task) -> None:
     db.delete(task)
     db.commit()
+
+
+def bookmark_task(db: Session, task: Task, user: User) -> TaskBookmark:
+    bookmark = TaskBookmark(user_id=user.id, task_id=task.id)
+    db.add(bookmark)
+    commit_or_raise_conflict(db, messages.TASK_ALREADY_BOOKMARKED)
+    db.refresh(bookmark)
+    return bookmark

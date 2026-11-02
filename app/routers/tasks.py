@@ -1,17 +1,29 @@
-from fastapi import APIRouter, status
+from fastapi import status
 
-from app.core.exceptions import BadRequestException, NotFoundException, error_responses
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException, error_responses
 from app.crud import task as task_crud
-from app.dependencies import DbSession, ProjectDetail, TaskDetail
-from app.schemas.task import TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
+from app.dependencies import (
+    CurrentUser,
+    DbSession,
+    ManagedProject,
+    ManagedTask,
+    PaginationDep,
+    ProjectDetail,
+    TaskDetail,
+    TaskFilterDep,
+)
+from app.routers.common import protected_router
+from app.schemas.pagination import Page
+from app.schemas.task import TaskBookmarkRead, TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-project_tasks_router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["tasks"])
+router = protected_router("/api/tasks", "tasks")
+project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
 
 
-@router.get("", response_model=list[TaskRead], summary="List tasks")
-def list_tasks(db: DbSession) -> list[TaskRead]:
-    return [TaskRead.model_validate(task) for task in task_crud.get_tasks(db)]
+@router.get("", response_model=Page[TaskRead], summary="List tasks")
+def list_tasks(filters: TaskFilterDep, pagination: PaginationDep, db: DbSession) -> Page[TaskRead]:
+    tasks, total = task_crud.get_tasks(db, filters, pagination)
+    return Page[TaskRead](items=tasks, total=total)
 
 
 @router.get(
@@ -30,7 +42,7 @@ def read_task(task: TaskDetail) -> TaskRead:
     summary="Update task",
     responses=error_responses(NotFoundException, BadRequestException),
 )
-def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRead:
+def update_task(task_in: TaskUpdate, task: ManagedTask, db: DbSession) -> TaskRead:
     return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
 
 
@@ -40,18 +52,32 @@ def update_task(task_in: TaskUpdate, task: TaskDetail, db: DbSession) -> TaskRea
     summary="Delete task",
     responses=error_responses(NotFoundException),
 )
-def delete_task(task: TaskDetail, db: DbSession) -> None:
+def delete_task(task: ManagedTask, db: DbSession) -> None:
     task_crud.delete_task(db, task)
+
+
+@router.post(
+    "/{task_id}/bookmark",
+    response_model=TaskBookmarkRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Bookmark task",
+    responses=error_responses(NotFoundException, ConflictException),
+)
+def bookmark_task(task: TaskDetail, current_user: CurrentUser, db: DbSession) -> TaskBookmarkRead:
+    return TaskBookmarkRead.model_validate(task_crud.bookmark_task(db, task, current_user))
 
 
 @project_tasks_router.get(
     "",
-    response_model=list[TaskWithTagsRead],
+    response_model=Page[TaskWithTagsRead],
     summary="List tasks of project",
     responses=error_responses(NotFoundException),
 )
-def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTagsRead]:
-    return [TaskWithTagsRead.model_validate(task) for task in task_crud.get_project_tasks(db, project.id)]
+def list_project_tasks(
+    project: ProjectDetail, filters: TaskFilterDep, pagination: PaginationDep, db: DbSession
+) -> Page[TaskWithTagsRead]:
+    tasks, total = task_crud.get_project_tasks(db, project.id, filters, pagination)
+    return Page[TaskWithTagsRead](items=tasks, total=total)
 
 
 @project_tasks_router.post(
@@ -61,5 +87,7 @@ def list_project_tasks(project: ProjectDetail, db: DbSession) -> list[TaskWithTa
     summary="Create task in project",
     responses=error_responses(NotFoundException, BadRequestException),
 )
-def create_project_task(task_in: TaskCreate, project: ProjectDetail, db: DbSession) -> TaskWithTagsRead:
-    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, task_in))
+def create_project_task(
+    task_in: TaskCreate, project: ManagedProject, current_user: CurrentUser, db: DbSession
+) -> TaskWithTagsRead:
+    return TaskWithTagsRead.model_validate(task_crud.create_task(db, project, current_user, task_in))
