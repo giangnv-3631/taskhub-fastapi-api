@@ -25,3 +25,7 @@ JWT_ALGORITHM = "HS256"
 
 SMTP_DEFAULT_PORT = 1025
 MAIL_FROM_DEFAULT = "TaskHub <noreply@taskhub.local>"
+
+DEFAULT_CORS_ORIGINS = ["http://localhost:3000", "http://localhost:5173"]
+DEFAULT_LOG_LEVEL = "INFO"
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"

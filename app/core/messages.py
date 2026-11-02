@@ -30,3 +30,6 @@ NEW_COMMENT_EMAIL_SUBJECT = "New comment on task: {task_title}"
 NEW_COMMENT_EMAIL_BODY = "{author} commented on \"{task_title}\":\n\n{content}"
 EMAIL_LOGGED = "SMTP not configured, email to %s | %s\n%s"
 EMAIL_SEND_FAILED = "Failed to send email to %s"
+
+INTERNAL_SERVER_ERROR = "Internal server error"
+UNHANDLED_ERROR_LOG = "Unhandled error on %s %s"

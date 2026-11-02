@@ -1,9 +1,14 @@
+import logging
 from http import HTTPStatus
 from typing import Any
 
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+from app.core import messages
+
+logger = logging.getLogger(__name__)
 
 
 class AppException(Exception):
@@ -42,6 +47,13 @@ class ErrorResponse(BaseModel):
 
 def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message}, headers=exc.headers)
+
+
+def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error(messages.UNHANDLED_ERROR_LOG, request.method, request.url.path)
+    return JSONResponse(
+        status_code=HTTPStatus.INTERNAL_SERVER_ERROR, content={"detail": messages.INTERNAL_SERVER_ERROR}
+    )
 
 
 def error_responses(*exceptions: type[AppException]) -> dict[int | str, dict[str, Any]]:

@@ -3,6 +3,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    DEFAULT_CORS_ORIGINS,
+    DEFAULT_LOG_LEVEL,
     JWT_ALGORITHM,
     MAIL_FROM_DEFAULT,
     SECRET_KEY_MIN_LENGTH,
@@ -20,6 +22,8 @@ class Settings(BaseSettings):
     smtp_host: str = ""
     smtp_port: int = SMTP_DEFAULT_PORT
     mail_from: str = MAIL_FROM_DEFAULT
+    cors_origins: list[str] = DEFAULT_CORS_ORIGINS
+    log_level: str = DEFAULT_LOG_LEVEL
 
 
 settings = Settings()
