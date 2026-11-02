@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 from sqlalchemy import text
 
 from app.core.exceptions import AppException, app_exception_handler
 from app.dependencies import DbSession
 from app.routers import comments, projects, tags, tasks, users
+
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="TaskHub API")
 

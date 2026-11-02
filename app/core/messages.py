@@ -25,3 +25,8 @@ TASK_ALREADY_BOOKMARKED = "Task already bookmarked"
 
 FIELD_CANNOT_BE_NULL = "{field} cannot be null"
 DUE_DATE_IN_PAST = "due_date cannot be in the past"
+
+NEW_COMMENT_EMAIL_SUBJECT = "New comment on task: {task_title}"
+NEW_COMMENT_EMAIL_BODY = "{author} commented on \"{task_title}\":\n\n{content}"
+EMAIL_LOGGED = "SMTP not configured, email to %s | %s\n%s"
+EMAIL_SEND_FAILED = "Failed to send email to %s"

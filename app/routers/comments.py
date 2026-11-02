@@ -1,4 +1,4 @@
-from fastapi import status
+from fastapi import BackgroundTasks, status
 
 from app.core.exceptions import NotFoundException, error_responses
 from app.crud import comment as comment_crud
@@ -6,6 +6,7 @@ from app.dependencies import CurrentUser, DbSession, DeletableComment, EditableC
 from app.routers.common import protected_router
 from app.schemas.comment import CommentCreate, CommentRead, CommentUpdate
 from app.schemas.pagination import Page
+from app.services.notifications import comment_recipients, notify_new_comment
 
 router = protected_router("/api/tasks/{task_id}/comments", "comments")
 
@@ -29,9 +30,17 @@ def list_comments(task: TaskDetail, pagination: PaginationDep, db: DbSession) ->
     responses=error_responses(NotFoundException),
 )
 def create_comment(
-    comment_in: CommentCreate, task: TaskDetail, current_user: CurrentUser, db: DbSession
+    comment_in: CommentCreate,
+    task: TaskDetail,
+    current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
+    db: DbSession,
 ) -> CommentRead:
-    return CommentRead.model_validate(comment_crud.create_comment(db, task, current_user, comment_in))
+    comment = comment_crud.create_comment(db, task, current_user, comment_in)
+    background_tasks.add_task(
+        notify_new_comment, comment_recipients(task, current_user), task.title, current_user.username, comment.content
+    )
+    return CommentRead.model_validate(comment)
 
 
 @router.patch(
