@@ -50,7 +50,7 @@ def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
 
 
 def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error(messages.UNHANDLED_ERROR_LOG, request.method, request.url.path)
+    logger.error(messages.UNHANDLED_ERROR_LOG, request.method, request.url.path, exc_info=exc)
     return JSONResponse(
         status_code=HTTPStatus.INTERNAL_SERVER_ERROR, content={"detail": messages.INTERNAL_SERVER_ERROR}
     )

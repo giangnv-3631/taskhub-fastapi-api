@@ -24,6 +24,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 JWT_ALGORITHM = "HS256"
 
 SMTP_DEFAULT_PORT = 1025
+SMTP_TIMEOUT_SECONDS = 10
 MAIL_FROM_DEFAULT = "TaskHub <noreply@taskhub.local>"
 
 DEFAULT_CORS_ORIGINS = ["http://localhost:3000", "http://localhost:5173"]

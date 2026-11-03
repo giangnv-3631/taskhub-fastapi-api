@@ -58,6 +58,7 @@ pytest -v
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Token lifetime |
 | `SMTP_HOST` | empty | Empty: emails are written to the log |
 | `SMTP_PORT` | `1025` | SMTP port |
+| `SMTP_TIMEOUT` | `10` | SMTP connection timeout in seconds |
 | `MAIL_FROM` | `TaskHub <noreply@taskhub.local>` | Sender address |
 | `CORS_ORIGINS` | `["http://localhost:3000","http://localhost:5173"]` | Allowed frontend origins (JSON list) |
 | `LOG_LEVEL` | `INFO` | Log level |

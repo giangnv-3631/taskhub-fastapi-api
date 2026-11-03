@@ -19,7 +19,7 @@ def send_email(to: str, subject: str, body: str) -> None:
     message["Subject"] = subject
     message.set_content(body)
     try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=settings.smtp_timeout) as smtp:
             smtp.send_message(message)
     except (smtplib.SMTPException, OSError):
         logger.exception(messages.EMAIL_SEND_FAILED, to)

@@ -1,15 +1,7 @@
 import logging
 
 from app.enums import UserRole
-
-
-def create_task(client, headers: dict[str, str]) -> int:
-    project_id = client.post("/api/projects", json={"name": "Website"}, headers=headers).json()["id"]
-    return client.post(f"/api/projects/{project_id}/tasks", json={"title": "Homepage"}, headers=headers).json()["id"]
-
-
-def get_user_id(client, headers: dict[str, str]) -> int:
-    return client.get("/api/users/me", headers=headers).json()["id"]
+from tests.conftest import create_task, get_user_id
 
 
 def test_comment_emails_creator_and_assignee_in_background(client, register_user, caplog):
@@ -37,7 +29,7 @@ def test_comment_author_is_not_emailed(client, register_user, caplog):
     assert [record for record in caplog.records if record.name == "app.services.notifications"] == []
 
 
-def test_only_author_or_project_owner_can_change_comment(client, register_user):
+def test_only_author_edits_comment_and_project_owner_can_delete_it(client, register_user):
     manager = register_user("lead", UserRole.PROJECT_MANAGER)
     author = register_user("writer")
     other = register_user("reader")
@@ -49,6 +41,10 @@ def test_only_author_or_project_owner_can_change_comment(client, register_user):
 
     assert client.patch(comment_path, json={"content": "Hacked"}, headers=other).status_code == 403
     assert client.delete(comment_path, headers=other).status_code == 403
+
+    owner_edit = client.patch(comment_path, json={"content": "Rewritten"}, headers=manager)
+    assert owner_edit.status_code == 403
+    assert owner_edit.json()["detail"] == "Only the comment author can edit this comment"
 
     edited = client.patch(comment_path, json={"content": "Second draft"}, headers=author)
     assert edited.status_code == 200

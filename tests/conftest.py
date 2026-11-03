@@ -61,6 +61,19 @@ def client(db_session):
     app.dependency_overrides.clear()
 
 
+def create_project(client, headers: dict[str, str]) -> int:
+    return client.post("/api/projects", json={"name": "Website"}, headers=headers).json()["id"]
+
+
+def create_task(client, headers: dict[str, str]) -> int:
+    project_id = create_project(client, headers)
+    return client.post(f"/api/projects/{project_id}/tasks", json={"title": "Homepage"}, headers=headers).json()["id"]
+
+
+def get_user_id(client, headers: dict[str, str]) -> int:
+    return client.get("/api/users/me", headers=headers).json()["id"]
+
+
 @pytest.fixture
 def register_user(client, db_session):
     def register(username: str, role: UserRole = UserRole.MEMBER) -> dict[str, str]:
