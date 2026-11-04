@@ -5,6 +5,7 @@ from app.crud import task as task_crud
 from app.dependencies import (
     CurrentUser,
     DbSession,
+    EditableTask,
     ManagedProject,
     ManagedTask,
     PaginationDep,
@@ -14,7 +15,7 @@ from app.dependencies import (
 )
 from app.routers.common import protected_router
 from app.schemas.pagination import Page
-from app.schemas.task import TaskBookmarkRead, TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
+from app.schemas.task import TaskAssign, TaskBookmarkRead, TaskCreate, TaskRead, TaskUpdate, TaskWithTagsRead
 
 router = protected_router("/api/tasks", "tasks")
 project_tasks_router = protected_router("/api/projects/{project_id}/tasks", "tasks")
@@ -40,10 +41,20 @@ def read_task(task: TaskDetail) -> TaskRead:
     "/{task_id}",
     response_model=TaskRead,
     summary="Update task",
+    responses=error_responses(NotFoundException),
+)
+def update_task(task_in: TaskUpdate, task: EditableTask, db: DbSession) -> TaskRead:
+    return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
+
+
+@router.post(
+    "/{task_id}/assign",
+    response_model=TaskRead,
+    summary="Assign task",
     responses=error_responses(NotFoundException, BadRequestException),
 )
-def update_task(task_in: TaskUpdate, task: ManagedTask, db: DbSession) -> TaskRead:
-    return TaskRead.model_validate(task_crud.update_task(db, task, task_in))
+def assign_task(assign_in: TaskAssign, task: ManagedTask, db: DbSession) -> TaskRead:
+    return TaskRead.model_validate(task_crud.assign_task(db, task, assign_in))
 
 
 @router.delete(

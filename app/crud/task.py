@@ -6,12 +6,15 @@ from app.core.exceptions import BadRequestException
 from app.crud.common import commit_or_raise_conflict, get_or_raise, paginate
 from app.models import Project, Tag, Task, TaskBookmark, User
 from app.schemas.pagination import PaginationParams
-from app.schemas.task import TaskCreate, TaskFilterParams, TaskUpdate
+from app.schemas.task import TaskAssign, TaskCreate, TaskFilterParams, TaskUpdate
 
 
 def ensure_assignee_exists(db: Session, assignee_id: int | None) -> None:
-    if assignee_id is not None:
-        get_or_raise(db, User, assignee_id, BadRequestException(messages.ASSIGNEE_NOT_FOUND))
+    if assignee_id is None:
+        return
+    assignee = get_or_raise(db, User, assignee_id, BadRequestException(messages.ASSIGNEE_NOT_FOUND))
+    if not assignee.is_active:
+        raise BadRequestException(messages.ASSIGNEE_INACTIVE)
 
 
 def get_tags_or_raise(db: Session, tag_ids: list[int]) -> list[Tag]:
@@ -52,9 +55,16 @@ def create_task(db: Session, project: Project, creator: User, task_in: TaskCreat
 
 
 def update_task(db: Session, task: Task, task_in: TaskUpdate) -> Task:
-    ensure_assignee_exists(db, task_in.assignee_id)
     for field, value in task_in.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def assign_task(db: Session, task: Task, assign_in: TaskAssign) -> Task:
+    ensure_assignee_exists(db, assign_in.assignee_id)
+    task.assignee_id = assign_in.assignee_id
     db.commit()
     db.refresh(task)
     return task
